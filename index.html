@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOCia - CyberSec Mafia</title>
+	<!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- QR Code Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Arkusz stylów -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+  <h1>🛡️ SOCia</h1>
+
+  <!-- EKRAN STARTOWY -->
+  <div id="screen-welcome">
+    <div style="background: #090d16; padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; color:var(--blue);">Panel Hosta</h3>
+      <input type="number" id="host-max-players" placeholder="Liczba graczy (5-31)" min="5" max="31" value="6">
+      <button class="btn btn-green" onclick="createRoom()">Stwórz Pokój</button>
+    </div>
+    
+    <hr style="border-color: var(--border); margin: 20px 0;">
+    
+    <h3 style="margin-top:0; color:var(--green);">Panel Gracza</h3>
+    <input type="text" id="join-code" placeholder="Kod pokoju (np. ABCD)">
+    <input type="text" id="player-name" placeholder="Twoje Imię">
+    <button class="btn" onclick="checkRoomAndShowSlots()">Dołącz do Gry</button>
+  </div>
+
+  <!-- EKRAN WYBORU MIEJSCA DLA GRACZA -->
+  <div id="screen-select-slot" class="hidden">
+    <h2>Wybierz swoje miejsce</h2>
+    <p>Wybierz wolny slot wokół stołu w pokoju <b id="select-slot-room-code" style="color:var(--blue)"></b>:</p>
+    <div class="table-container">
+      <div id="slots-grid" class="table-ring"></div>
+    </div>
+  </div>
+
+  <!-- EKRAN HOSTA (KOMPUTER) -->
+  <div id="screen-host" class="hidden">
+    <h2>Pokój: <span id="host-room-code" style="color:var(--blue)"></span></h2>
+    <div id="qrcode"></div>
+    <h3>Stan pokoju (<span id="player-count">0</span> / <span id="max-player-count">0</span> graczy):</h3>
+    <p style="font-size: 0.8em; color: var(--yellow);">Minimalna liczba graczy do startu to 5.</p>
+    
+    <div class="table-container">
+      <div id="host-player-circles" class="table-ring"></div>
+    </div>
+
+    <!-- Panel ręcznego przypisywania ról przez hosta -->
+    <div id="host-role-assign-container" style="margin-top: 20px; text-align: left; background: #090d16; padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; color: var(--blue); text-align: center; font-size: 1em;">Ręczne przypisywanie ról (Opcjonalnie)</h3>
+      <div id="host-role-assign-list"></div>
+    </div>
+
+    <button class="btn btn-green" id="start-game-btn" onclick="startGame()" style="margin-top:20px;">Rozdaj Role i Rozpocznij</button>
+  </div>
+
+  <!-- EKRAN GRACZA (Z PASKIEM NAWIGACYJNYM) -->
+  <div id="screen-player" class="hidden">
+    
+    <!-- Górny pasek menu -->
+    <div class="nav-bar">
+      <button class="nav-btn active" onclick="switchTab('table', this)">Stół</button>
+      <button class="nav-btn" onclick="switchTab('roles', this)">Roli</button>
+      <button class="nav-btn" onclick="switchTab('first-night', this)">Pierwsza noc</button>
+      <button class="nav-btn" onclick="switchTab('next-nights', this)">Kolejne noce</button>
+    </div>
+
+    <!-- ZAKŁADKA 1: STÓŁ -->
+    <div id="tab-table" class="tab-content">
+      <h2>Witaj, <span id="display-player-name"></span>!</h2>
+      <p style="font-size: 0.85em; color: #8b949e; margin-bottom:5px;">Twój slot: #<span id="display-player-slot"></span> (Kliknij na gracza, by zapisać notatkę)</p>
+      
+      <div class="table-container">
+        <div id="player-table-circles" class="table-ring"></div>
+      </div>
+
+      <div id="player-status-box" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ZAKŁADKA 2: ROLI -->
+    <div id="tab-roles" class="tab-content hidden" style="text-align: left; max-height: 450px; overflow-y: auto; padding-right: 5px;">
+      <h2 style="text-align: center; margin-top:0;">Księga Ról</h2>
+      <div id="roles-book-container"></div>
+    </div>
+
+    <!-- ZAKŁADKA 3: PIERWSZA NOC -->
+    <div id="tab-first-night" class="tab-content hidden night-guide">
+      <h3>🌙 Sekwencja: Pierwsza Noc</h3>
+      <div class="night-step"><span>1</span><strong>Botnet:</strong> Wprowadza do puli gry dodatkowych Outsiders (+2).</div>
+      <div class="night-step"><span>2</span><strong>Trojan:</strong> Poznaje prawdę (jeśli dotyczy), a Główny Hacker dowiaduje się, kto jest Trojanem.</div>
+      <div class="night-step"><span>3</span><strong>Analityk Logów:</strong> Wskazuje dwóch graczy i dowiaduje się, że jeden z nich to na pewno porządny administrator/pracownik.</div>
+      <div class="night-step"><span>4</span><strong>SysAdmin:</strong> Wskazuje dwóch graczy i dowiaduje się, że jeden z nich to Pomocnik (Minion/Trojan).</div>
+      <div class="night-step"><span>5</span><strong>Audytor Podatności:</strong> Otrzymuje informację, ile par złych graczy siedzi bezpośrednio obok siebie.</div>
+      <div class="night-step"><span>6</span><strong>Socjotechnik:</strong> Wybiera gracza, którego zdolność zostaje zablokowana na tę noc i następny dzień.</div>
+      <div class="night-step"><span>7</span><strong>Firewall:</strong> Wybiera gracza, którego chroni tej nocy przed Hackerem.</div>
+      <div class="night-step"><span>8</span><strong>Hacker (Demon):</strong> Sprawdza podgląd minionów/planszy i wskazuje pierwszego gracza do zaszyfrowania (eliminacji).</div>
+    </div>
+
+    <!-- ZAKŁADKA 4: KOLEJNE NOCE -->
+    <div id="tab-next-nights" class="tab-content hidden night-guide">
+      <h3>🌙 Sekwencja: Kolejne Noce</h3>
+      <div class="night-step"><span>1</span><strong>Socjotechnik:</strong> Wybiera gracza do zablokowania na tę noc i nadchodzący dzień.</div>
+      <div class="night-step"><span>2</span><strong>Firewall:</strong> Wybiera gracza, którego chroni przed Hackerem.</div>
+      <div class="night-step"><span>3</span><strong>Hacker (Demon):</strong> Wskazuje gracza do zaszyfrowania. (Jeśli wybierze siebie, Serwer Zapasowy przejmuje rolę Hackera).</div>
+      <div class="night-step"><span>4</span><strong>Monitoring Awaryjny:</strong> Jeśli zginął w nocy, budzi się, wybierasz gracza i poznajesz jego dokładną rolę.</div>
+      <div class="night-step"><span>5</span><strong>Digital Forensics:</strong> Dowiaduje się, jaką rolę miał gracz skazany (przegłosowany) poprzedniego dnia.</div>
+      <div class="night-step"><span>6</span><strong>Skaner Sieciowy:</strong> Wybiera 2 graczy i sprawdza, czy jest wśród nich Hacker (uwaga na fałszywy alarm / false positive).</div>
+      <div class="night-step"><span>7</span><strong>SOC Analityk:</strong> Dowiaduje się, ilu złych graczy siedzi po jego bezpośrednich żyjących sąsiadach.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: WŁASNA ROLA -->
+<div id="role-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h2 style="margin-top:0;">Twoja Rola w Grze</h2>
+    <div id="modal-role-info"></div>
+    <button class="btn btn-green" onclick="closeRoleModal()" style="margin-top:20px;">Rozumiem moją rolę</button>
+  </div>
+</div>
+
+<!-- MODAL: NOTATKA / PODEJRZENIE ROLI -->
+<div id="suspect-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h2 style="margin-top:0;">Podejrzenie roli</h2>
+    <p id="suspect-player-title" style="color: var(--blue); font-weight: bold;"></p>
+    <p style="font-size: 0.85em; color: #8b949e;">Wybierz rolę, którą podejrzewasz u tego gracza (widoczne tylko dla Ciebie):</p>
+    
+    <select id="suspect-role-select" style="width: 100%; padding: 10px; background: #090d16; border: 1px solid var(--border); color: white; border-radius: 6px; margin: 10px 0;">
+      <option value="">-- Brak / Wyczyść --</option>
+    </select>
+
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+      <button class="btn btn-green" onclick="saveSuspectRole()" style="flex: 1; margin:0;">Zapisz</button>
+      <button class="btn btn-red" onclick="closeSuspectModal()" style="flex: 1; margin:0;">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+<!-- Logika JavaScript -->
+<script src="script.js"></script>
+</body>
+</html>
