@@ -626,14 +626,16 @@ function saveSuspectRole() {
   if (!selectedTargetKey) return;
   const roleVal = document.getElementById('suspect-role-select').value;
   
+  // Pobieramy aktualne notatki za pomocą dedykowanej funkcji
   let suspicions = getSuspicions();
+  
   if (roleVal) {
     suspicions[selectedTargetKey] = roleVal;
   } else {
     delete suspicions[selectedTargetKey];
   }
   
-  saveSuspicions(suspects);
+  saveSuspicions(suspicions);
   closeSuspectModal();
 }
 
