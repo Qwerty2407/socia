@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SOCia - CyberSec Mafia</title>
-	<!-- Firebase SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <!-- QR Code Generator -->
@@ -79,6 +79,8 @@
       <p style="font-size: 0.85em; color: #8b949e; margin-bottom:5px;">Twój slot: #<span id="display-player-slot"></span> (Kliknij na gracza, by zapisać notatkę)</p>
       
       <div class="table-container">
+        <!-- Przycisk w środku stołu do ukrywania/pokazywania notatek -->
+        <button id="toggle-notes-btn" class="center-toggle-btn" onclick="toggleNotesVisibility()" title="Ukryj/Pokaż notatki">👁️ Notatki: WIDOCZNE</button>
         <div id="player-table-circles" class="table-ring"></div>
       </div>
 
@@ -110,7 +112,7 @@
       <div class="night-step"><span>1</span><strong>Socjotechnik:</strong> Wybiera gracza do zablokowania na tę noc i nadchodzący dzień.</div>
       <div class="night-step"><span>2</span><strong>Firewall:</strong> Wybiera gracza, którego chroni przed Hackerem.</div>
       <div class="night-step"><span>3</span><strong>Hacker (Demon):</strong> Wskazuje gracza do zaszyfrowania. (Jeśli wybierze siebie, Serwer Zapasowy przejmuje rolę Hackera).</div>
-      <div class="night-step"><span>4</span><strong>Monitoring Awaryjny:</strong> Jeśli zginął w nocy, budzi się, wybierasz gracza i poznajesz jego dokładną rolę.</div>
+      <div class="night-step"><span>4</span><strong>Monitoring Awaryjny:</strong> Jeśli zginął w nocy, budzi się, wybiera gracza i poznajesz jego dokładną rolę.</div>
       <div class="night-step"><span>5</span><strong>Digital Forensics:</strong> Dowiaduje się, jaką rolę miał gracz skazany (przegłosowany) poprzedniego dnia.</div>
       <div class="night-step"><span>6</span><strong>Skaner Sieciowy:</strong> Wybiera 2 graczy i sprawdza, czy jest wśród nich Hacker (uwaga na fałszywy alarm / false positive).</div>
       <div class="night-step"><span>7</span><strong>SOC Analityk:</strong> Dowiaduje się, ilu złych graczy siedzi po jego bezpośrednich żyjących sąsiadach.</div>

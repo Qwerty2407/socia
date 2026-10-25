@@ -79,6 +79,32 @@ input {
   color: white;
 }
 
+/* Przycisk na środku stołu */
+.center-toggle-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  background: #090d16;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.7em;
+  font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.center-toggle-btn:hover {
+  border-color: var(--blue);
+  color: white;
+  background: #161b22;
+}
+
 /* Style dla sekwencji nocy */
 .night-guide {
   text-align: left;

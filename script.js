@@ -17,6 +17,7 @@ let myPlayerName = "";
 let mySlot = null;
 let roleModalShown = false;
 let selectedTargetKey = null;
+let hideNotes = false; // Flaga określająca czy notatki są ukryte
 
 const ROLE_CATEGORIES = {
   townsfolk: [
@@ -96,6 +97,21 @@ function switchTab(tabName, btnElement) {
   }
 
   btnElement.classList.add('active');
+}
+
+// Funkcja przełączająca widoczność notatek
+function toggleNotesVisibility() {
+  hideNotes = !hideNotes;
+  const btn = document.getElementById('toggle-notes-btn');
+  if (hideNotes) {
+    btn.innerText = "🙈 Notatki: UKRYTE";
+    btn.style.borderColor = "var(--red)";
+  } else {
+    btn.innerText = "👁️ Notatki: WIDOCZNE";
+    btn.style.borderColor = "var(--border)";
+  }
+  // Odśwież widok stołu gracza z nowym stanem
+  listenPlayerRoomOnce();
 }
 
 function renderRolesBook() {
@@ -191,10 +207,15 @@ function restoreSession() {
         showScreen('screen-host');
 
         document.getElementById("qrcode").innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), {
-          text: window.location.href.split('?')[0] + "?room=" + currentRoom,
-          width: 140, height: 140
-        });
+        
+        const currentDomain = window.location.origin + window.location.pathname;
+        const qrData = `${currentDomain}?room=${currentRoom}`;
+        
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(document.getElementById("qrcode"), {
+            text: qrData, width: 140, height: 140
+          });
+        }
 
         listenHostRoom();
       } else if (session.playerKey) {
@@ -231,7 +252,6 @@ function getRandomSample(categoryList, count) {
   return result;
 }
 
-// === HOST LOGIKA ===
 function createRoom() {
   let maxPlayersInput = parseInt(document.getElementById('host-max-players').value);
   if (isNaN(maxPlayersInput) || maxPlayersInput < 5) maxPlayersInput = 5;
@@ -248,30 +268,15 @@ function createRoom() {
   document.getElementById('max-player-count').innerText = maxPlayersInput;
   showScreen('screen-host');
 
-  // Generowanie kodu QR dla Netlify (używa oficjalnego adresu hostingu)
   const qrContainer = document.getElementById("qrcode");
   qrContainer.innerHTML = "";
-
-  // Pobiera aktualny adres strony (np. https://socia-game.netlify.app) + kod pokoju
   const currentDomain = window.location.origin + window.location.pathname;
   const qrData = `${currentDomain}?room=${currentRoom}`;
 
-  try {
-    if (typeof QRCode !== 'undefined') {
-      new QRCode(qrContainer, {
-        text: qrData,
-        width: 140,
-        height: 140,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    } else {
-      qrContainer.innerHTML = `<p style="color:var(--red); font-size:0.8em;">Błąd: Brak biblioteki QR. Kod pokoju to: <b>${currentRoom}</b></p>`;
-    }
-  } catch (err) {
-    console.error("Błąd generowania QR:", err);
-    qrContainer.innerHTML = `<p style="color:var(--red); font-size:0.8em;">Kod pokoju: <b>${currentRoom}</b></p>`;
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(qrContainer, {
+      text: qrData, width: 140, height: 140
+    });
   }
 
   saveSession(true);
@@ -331,7 +336,6 @@ function listenHostRoom() {
           </div>
         `;
 
-        // Generowanie pola wyboru roli dla h osta
         let optionsHtml = `<option value="">-- Losowo z tabeli --</option>`;
         allRoles.forEach(r => {
           let selected = (p.manualRole && p.manualRole === r.name) ? "selected" : "";
@@ -377,32 +381,20 @@ function startGame() {
 
     const proportions = getRoleProportions(playerCount);
 
-    // Przygotowanie puli ról losowych dla graczy, którzy nie mają przypisanej roli ręcznie
-    let poolTowns = [...ROLE_CATEGORIES.townsfolk];
-    let poolOuts = [...ROLE_CATEGORIES.outsiders];
-    let poolMin = [...ROLE_CATEGORIES.minions];
-    let poolDem = [...ROLE_CATEGORIES.demons];
-
     let assignedRolesMap = {};
-    let unassignedKeys = [];
-
-    // Najpierw sprawdzamy, kto ma przypisaną rolę ręcznie przez hosta
     keys.forEach(key => {
       let p = players[key];
       if (p.manualRole) {
-        let foundRole = [...poolTowns, ...poolOuts, ...poolMin, ...poolDem].find(r => r.name === p.manualRole);
-        if (foundRole) {
-          assignedRolesMap[key] = foundRole;
-          // Usuwamy z puli losowania, żeby nie zdublować (opcjonalnie)
-        } else {
-          unassignedKeys.push(key);
-        }
-      } else {
-        unassignedKeys.push(key);
+        let foundRole = [
+          ...ROLE_CATEGORIES.townsfolk, 
+          ...ROLE_CATEGORIES.outsiders, 
+          ...ROLE_CATEGORIES.minions, 
+          ...ROLE_CATEGORIES.demons
+        ].find(r => r.name === p.manualRole);
+        if (foundRole) assignedRolesMap[key] = foundRole;
       }
     });
 
-    // Dla pozostałych losujemy według proporcji
     let autoRoles = [];
     autoRoles.push(...getRandomSample(ROLE_CATEGORIES.townsfolk, proportions.townsfolk));
     autoRoles.push(...getRandomSample(ROLE_CATEGORIES.outsiders, proportions.outsiders));
@@ -512,84 +504,98 @@ function claimSlot(slotNumber) {
   listenPlayerRoom();
 }
 
+let cachedRoomSnapshot = null;
+
 function listenPlayerRoom() {
   db.ref(`rooms/${currentRoom}`).on('value', snapshot => {
-    const roomData = snapshot.val();
-    if (!roomData) return;
-
-    const players = roomData.players || {};
-    const max = roomData.maxPlayers || 6;
-    const playerKeys = Object.keys(players);
-    const config = getCircleSizeConfig(max);
-
-    const containerDiv = document.getElementById('player-table-circles');
-    containerDiv.innerHTML = "";
-
-    const me = players[myPlayerKey];
-    if (me && me.role && !roleModalShown) {
-      showRoleModal(me.role);
-      roleModalShown = true;
-    }
-
-    const suspicions = getSuspicions();
-
-    for (let i = 1; i <= max; i++) {
-      const pos = getPerimeterPosition(i - 1, max);
-      const playerKey = playerKeys.find(k => players[k].slot === i);
-      
-      if (playerKey) {
-        const p = players[playerKey];
-        const isMe = (playerKey === myPlayerKey);
-        let statusClass = isMe ? "joined is-me" : "joined";
-
-        if (roomData.state === 'ingame') {
-          statusClass += p.alive ? " alive" : " dead";
-          if (isMe && p.role) {
-            statusClass += ` team-${p.role.team}`;
-          }
-        }
-
-        let clickAttr = "";
-        let suspectText = "";
-        if (!isMe && roomData.state === 'ingame') {
-          statusClass += " interactive-target";
-          clickAttr = `onclick="openSuspectModal('${playerKey}', '${p.name}')"`;
-          if (suspicions[playerKey]) {
-            suspectText = `<span class="player-role" style="color:var(--yellow);" title="Podejrzenie">❓ ${suspicions[playerKey]}</span>`;
-          }
-        }
-
-        let innerContent = "";
-        if (isMe && p.role) {
-          innerContent = `<span class="player-role" style="font-weight:bold;">${p.role.name}</span>`;
-        } else if (suspectText) {
-          innerContent = suspectText;
-        } else {
-          innerContent = `<span class="player-role">${p.alive ? '🟢' : '🔴'}</span>`;
-        }
-
-        containerDiv.innerHTML += `
-          <div class="player-circle ${statusClass}" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};" ${clickAttr}>
-            <span class="player-name">#${i} ${p.name}</span>
-            ${innerContent}
-          </div>
-        `;
-      } else {
-        containerDiv.innerHTML += `
-          <div class="player-circle" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};">
-            <span class="empty-slot">#${i}</span>
-          </div>
-        `;
-      }
-    }
-
-    const statusBox = document.getElementById('player-status-box');
-    if (me && me.alive === false) {
-      statusBox.innerHTML = `<h3 style="color:var(--red); margin:0;">⚠️ ZOSTALEŚ ZASZYFROWANY!</h3>`;
-    } else if (me && me.alive === true && me.role) {
-      statusBox.innerHTML = `<h3 style="color:var(--green); margin:0;">SYSTEM DZIAŁA STABILNIE</h3>`;
-    }
+    cachedRoomSnapshot = snapshot;
+    renderPlayerTable(snapshot);
   });
+}
+
+function listenPlayerRoomOnce() {
+  if (cachedRoomSnapshot) {
+    renderPlayerTable(cachedRoomSnapshot);
+  }
+}
+
+function renderPlayerTable(snapshot) {
+  const roomData = snapshot.val();
+  if (!roomData) return;
+
+  const players = roomData.players || {};
+  const max = roomData.maxPlayers || 6;
+  const playerKeys = Object.keys(players);
+  const config = getCircleSizeConfig(max);
+
+  const containerDiv = document.getElementById('player-table-circles');
+  containerDiv.innerHTML = "";
+
+  const me = players[myPlayerKey];
+  if (me && me.role && !roleModalShown) {
+    showRoleModal(me.role);
+    roleModalShown = true;
+  }
+
+  const suspicions = getSuspicions();
+
+  for (let i = 1; i <= max; i++) {
+    const pos = getPerimeterPosition(i - 1, max);
+    const playerKey = playerKeys.find(k => players[k].slot === i);
+    
+    if (playerKey) {
+      const p = players[playerKey];
+      const isMe = (playerKey === myPlayerKey);
+      let statusClass = isMe ? "joined is-me" : "joined";
+
+      if (roomData.state === 'ingame') {
+        statusClass += p.alive ? " alive" : " dead";
+        if (isMe && p.role) {
+          statusClass += ` team-${p.role.team}`;
+        }
+      }
+
+      let clickAttr = "";
+      let suspectText = "";
+      if (!isMe && roomData.state === 'ingame') {
+        statusClass += " interactive-target";
+        clickAttr = `onclick="openSuspectModal('${playerKey}', '${p.name}')"`;
+        // Wyświetl notatkę tylko wtedy, gdy notatki nie są ukryte przez gracza
+        if (!hideNotes && suspicions[playerKey]) {
+          suspectText = `<span class="player-role" style="color:var(--yellow);" title="Podejrzenie">❓ ${suspicions[playerKey]}</span>`;
+        }
+      }
+
+      let innerContent = "";
+      if (isMe && p.role) {
+        innerContent = `<span class="player-role" style="font-weight:bold;">${p.role.name}</span>`;
+      } else if (suspectText) {
+        innerContent = suspectText;
+      } else {
+        innerContent = `<span class="player-role">${p.alive ? '🟢' : '🔴'}</span>`;
+      }
+
+      containerDiv.innerHTML += `
+        <div class="player-circle ${statusClass}" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};" ${clickAttr}>
+          <span class="player-name">#${i} ${p.name}</span>
+          ${innerContent}
+        </div>
+      `;
+    } else {
+      containerDiv.innerHTML += `
+        <div class="player-circle" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};">
+          <span class="empty-slot">#${i}</span>
+        </div>
+      `;
+    }
+  }
+
+  const statusBox = document.getElementById('player-status-box');
+  if (me && me.alive === false) {
+    statusBox.innerHTML = `<h3 style="color:var(--red); margin:0;">⚠️ ZOSTALEŚ ZASZYFROWANY!</h3>`;
+  } else if (me && me.alive === true && me.role) {
+    statusBox.innerHTML = `<h3 style="color:var(--green); margin:0;">SYSTEM DZIAŁA STABILNIE</h3>`;
+  }
 }
 
 function populateSuspectSelect() {
@@ -627,7 +633,7 @@ function saveSuspectRole() {
     delete suspicions[selectedTargetKey];
   }
   
-  saveSuspicions(suspicions);
+  saveSuspicions(suspects);
   closeSuspectModal();
 }
 
