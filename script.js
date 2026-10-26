@@ -59,6 +59,18 @@ const ROLE_CATEGORIES = {
   ]
 };
 
+// Funkcja generująca ścieżkę do obrazka z folderu img/ (np. img/monitoring_awaryjny_blue.png)
+function getRoleImagePath(role) {
+  if (!role || !role.name || !role.team) return "";
+  let cleanName = role.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // usuwa polskie znaki (ą -> a itp.)
+    .replace(/[^a-z0-9]+/g, "_")     // spacje i znaki specjalne zamienia na podkreślenia
+    .replace(/^_+|_+$/g, "");        // obcina zbędne podkreślenia z brzegów
+  return `img/${cleanName}_${role.team}.png`;
+}
+
 function getRoleProportions(count) {
   const baseTable = {
     5:  { townsfolk: 3, outsiders: 0, minions: 1, demons: 1 },
@@ -338,10 +350,14 @@ function listenHostRoom() {
         }
         
         let roleBadgeStyle = "";
+        let innerCircleContent = "";
         if (p.role) {
           if (p.role.team === 'red') roleBadgeStyle = "color: var(--accent-red); font-weight:bold;";
           else if (p.role.team === 'blue') roleBadgeStyle = "color: var(--accent-blue); font-weight:bold;";
           else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--accent-yellow); font-weight:bold;";
+
+          let imgPath = getRoleImagePath(p.role);
+          innerCircleContent = `<img src="${imgPath}" alt="${p.role.name}" onerror="this.style.display='none'">`;
         }
 
         let badgesHtml = `<div class="host-badge-arc">`;
@@ -372,7 +388,9 @@ function listenHostRoom() {
         containerDiv.innerHTML += `
           <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};">
             ${badgesHtml}
-            <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia"></div>
+            <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia">
+              ${innerCircleContent}
+            </div>
             <div class="player-info-below">
               <span class="player-name">#${i} ${p.name}</span>
               ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role" style="color:var(--accent-yellow);">Gotowy</span>`}
@@ -687,6 +705,12 @@ function renderPlayerTable(snapshot) {
         }
       }
 
+      let innerCircleContent = "";
+      if (p.role) {
+        let imgPath = getRoleImagePath(p.role);
+        innerCircleContent = `<img src="${imgPath}" alt="${p.role.name}" onerror="this.style.display='none'">`;
+      }
+
       let innerInfo = "";
       if (isMe && p.role) {
         innerInfo = `<span class="player-role" style="font-weight:bold; color:var(--accent-blue);">${p.role.name}</span>`;
@@ -698,7 +722,9 @@ function renderPlayerTable(snapshot) {
 
       containerDiv.innerHTML += `
         <div class="${wrapperClass}" style="left: ${pos.left}; top: ${pos.top};" ${clickAttr}>
-          <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px;"></div>
+          <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px;">
+            ${innerCircleContent}
+          </div>
           <div class="player-info-below">
             <span class="player-name">#${i} ${p.name}</span>
             ${innerInfo}
@@ -763,7 +789,6 @@ function saveSuspectRole() {
   saveSuspicions(suspicions);
   closeSuspectModal();
   
-  // Natychmiastowe odświeżenie stołu gracza, aby notatka pokazała się bez odświeżania
   listenPlayerRoomOnce();
 }
 

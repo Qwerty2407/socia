@@ -385,6 +385,7 @@ input:focus, .cyber-select:focus {
   z-index: 5;
 }
 
+/* Kółko gracza z ukryciem krawędzi (kadrowanie obrazka) */
 .player-circle {
   border-radius: 50%;
   background: #0f172a;
@@ -392,9 +393,20 @@ input:focus, .cyber-select:focus {
   box-sizing: border-box;
   transition: all 0.3s ease;
   position: relative;
+  overflow: hidden; /* Ucina ostre kąty obrazka wewnątrz */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Półokrąg żetonów hosta nad kółkiem (TYLKO IKONKI) */
+/* Obrazek wewnątrz kółka */
+.player-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Wypełnia kółko i obcina nadmiar kwadratu */
+  border-radius: 50%;
+}
+
 .host-badge-arc {
   position: absolute;
   top: -14px;
