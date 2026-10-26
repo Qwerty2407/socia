@@ -154,6 +154,18 @@
   </div>
 </div>
 
+<!-- MODAL: WYBÓR ZNAKMCU HOSTA -->
+<div id="reminder-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h2 style="margin-top:0;">Wybierz efekt / znacznik</h2>
+    <p style="font-size: 0.85em; color: #8b949e;">Wybierz żeton, który chcesz przypisać temu graczowi:</p>
+    <div id="reminder-options-list" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0;">
+      <!-- Generowane dynamicznie -->
+    </div>
+    <button class="btn btn-red" onclick="closeReminderModal()">Zamknij</button>
+  </div>
+</div>
+
 <!-- Logika JavaScript -->
 <script src="script.js"></script>
 </body>

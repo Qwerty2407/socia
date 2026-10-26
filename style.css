@@ -216,33 +216,60 @@ input {
   position: relative;
 }
 
-/* Znaczniki hosta i głosy ducha nad kółkiem */
+/* Kontener na żetony hosta nad kółkiem */
 .host-badge-container {
   position: absolute;
-  top: -12px;
-  right: -12px;
+  top: -14px;
+  right: -16px;
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
+  max-width: 60px;
   z-index: 10;
 }
 
 .host-token {
   background: #161b22;
   border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.6em;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.host-token-remove {
+  cursor: pointer;
+  color: var(--red);
+  font-weight: bold;
+}
+
+.host-token-remove:hover {
+  color: white;
+}
+
+.host-token-add {
+  background: #090d16;
+  border: 1px dashed var(--green);
   border-radius: 50%;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65em;
+  font-size: 0.7em;
   cursor: pointer;
+  color: var(--green);
   box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.host-token:hover {
-  transform: scale(1.2);
-  border-color: var(--blue);
+.host-token-add:hover {
+  background: var(--green);
+  color: white;
+  transform: scale(1.15);
 }
 
 .player-node-wrapper.selectable {

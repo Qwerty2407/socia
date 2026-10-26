@@ -18,6 +18,15 @@ let mySlot = null;
 let roleModalShown = false;
 let selectedTargetKey = null;
 let hideNotes = false;
+let activeReminderPlayerKey = null; // Przechowuje klucz gracza, któremu host dodaje znacznik
+
+const AVAILABLE_REMINDERS = [
+  { name: "Otrucie", icon: "🧪" },
+  { name: "Tarcza / Chroniony", icon: "🛡️" },
+  { name: "Zablokowany", icon: "🚫" },
+  { name: "Wskaźnik specjalny", icon: "⭐" },
+  { name: "Zainfekowany", icon: "💻" }
+];
 
 const ROLE_CATEGORIES = {
   townsfolk: [
@@ -292,7 +301,6 @@ function listenHostRoom() {
 
     document.getElementById('player-count').innerText = playerKeys.length;
 
-    // Obsługa wyświetlania blefów dla Hackera
     const bluffsBox = document.getElementById('host-bluffs-box');
     const bluffsList = document.getElementById('host-bluffs-list');
     if (roomData.state === 'ingame' && roomData.bluffs) {
@@ -334,19 +342,32 @@ function listenHostRoom() {
           else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--yellow); font-weight:bold;";
         }
 
-        // Znaczniki hosta (żeton ducha oraz statusy)
         let badgesHtml = `<div class="host-badge-container">`;
+        
+        // Głos ducha
         if (roomData.state === 'ingame' && p.alive === false) {
-          let hasVote = p.ghostVote !== false; // domyślnie ma głos
+          let hasVote = p.ghostVote !== false;
           if (hasVote) {
-            badgesHtml += `<div class="host-token" title="Głos ducha (kliknij, aby zużyć)" onclick="event.stopPropagation(); toggleGhostVote('${playerKey}', true)">🗳️</div>`;
+            badgesHtml += `<div class="host-token" title="Głos ducha (kliknij, aby zużyć)" onclick="event.stopPropagation(); toggleGhostVote('${playerKey}')">🗳️</div>`;
           }
         }
-        if (roomData.state === 'ingame' && p.reminder) {
-          badgesHtml += `<div class="host-token" title="Status: ${p.reminder} (kliknij, aby zmienić)" onclick="event.stopPropagation(); cycleReminder('${playerKey}', '${p.reminder}')">${p.reminder}</div>`;
-        } else if (roomData.state === 'ingame') {
-          badgesHtml += `<div class="host-token" title="Dodaj znacznik" onclick="event.stopPropagation(); cycleReminder('${playerKey}', null)" style="opacity: 0.4;">➕</div>`;
+
+        // Tablica żetonów (maksymalnie 3)
+        let reminders = p.reminders || [];
+        reminders.forEach((rem, idx) => {
+          badgesHtml += `
+            <div class="host-token" title="${rem}">
+              ${rem}
+              <span class="host-token-remove" onclick="event.stopPropagation(); removeReminder('${playerKey}', ${idx})">×</span>
+            </div>
+          `;
+        });
+
+        // Przycisk plusa do dodawania żetonu (jeśli jest mniej niż 3)
+        if (roomData.state === 'ingame' && reminders.length < 3) {
+          badgesHtml += `<div class="host-token-add" title="Dodaj znacznik" onclick="event.stopPropagation(); openReminderModal('${playerKey}')">＋</div>`;
         }
+
         badgesHtml += `</div>`;
 
         containerDiv.innerHTML += `
@@ -390,19 +411,57 @@ function listenHostRoom() {
   });
 }
 
-function toggleGhostVote(playerKey, currentHasVote) {
+function toggleGhostVote(playerKey) {
   db.ref(`rooms/${currentRoom}/players/${playerKey}`).update({
     ghostVote: false
   });
 }
 
-function cycleReminder(playerKey, currentReminder) {
-  const reminders = [null, "🧪", "🛡️", "🚫"];
-  let currentIndex = reminders.indexOf(currentReminder);
-  let nextReminder = reminders[(currentIndex + 1) % reminders.length];
+function openReminderModal(playerKey) {
+  activeReminderPlayerKey = playerKey;
+  const listDiv = document.getElementById('reminder-options-list');
+  listDiv.innerHTML = "";
+
+  AVAILABLE_REMINDERS.forEach(rem => {
+    listDiv.innerHTML += `
+      <button class="btn" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin:0;" onclick="addReminder('${rem.icon} ${rem.name}')">
+        <span style="font-size: 1.2em;">${rem.icon}</span> <span>${rem.name}</span>
+      </button>
+    `;
+  });
+
+  document.getElementById('reminder-modal').classList.remove('hidden');
+}
+
+function closeReminderModal() {
+  document.getElementById('reminder-modal').classList.add('hidden');
+  activeReminderPlayerKey = null;
+}
+
+function addReminder(reminderText) {
+  if (!activeReminderPlayerKey) return;
   
-  db.ref(`rooms/${currentRoom}/players/${playerKey}`).update({
-    reminder: nextReminder
+  db.ref(`rooms/${currentRoom}/players/${activeReminderPlayerKey}`).once('value').then(snapshot => {
+    let pData = snapshot.val();
+    let reminders = pData.reminders || [];
+    if (reminders.length < 3) {
+      reminders.push(reminderText);
+      db.ref(`rooms/${currentRoom}/players/${activeReminderPlayerKey}`).update({
+        reminders: reminders
+      });
+    }
+    closeReminderModal();
+  });
+}
+
+function removeReminder(playerKey, index) {
+  db.ref(`rooms/${currentRoom}/players/${playerKey}`).once('value').then(snapshot => {
+    let pData = snapshot.val();
+    let reminders = pData.reminders || [];
+    reminders.splice(index, 1);
+    db.ref(`rooms/${currentRoom}/players/${playerKey}`).update({
+      reminders: reminders.length > 0 ? reminders : null
+    });
   });
 }
 
@@ -448,8 +507,6 @@ function startGame() {
 
     let updates = {};
     let autoIndex = 0;
-
-    // Zbieramy przypisane role, żeby wyliczyć niewykorzystane dobre role na blef dla Hackera
     let usedRoleNames = Object.values(assignedRolesMap).map(r => r.name);
 
     keys.forEach(key => {
@@ -463,10 +520,9 @@ function startGame() {
       }
       updates[`${key}/alive`] = true;
       updates[`${key}/ghostVote`] = true;
-      updates[`${key}/reminder`] = null;
+      updates[`${key}/reminders`] = null;
     });
 
-    // Generowanie 3 losowych dobrych ról (Townsfolk/Outsiders) spoza tych w grze (dla Hackera)
     let allGoodRoles = [...ROLE_CATEGORIES.townsfolk, ...ROLE_CATEGORIES.outsiders];
     let availableForBluff = allGoodRoles.filter(r => !usedRoleNames.includes(r.name));
     let randomBluffs = getRandomSample(availableForBluff, 3).map(r => r.name);
