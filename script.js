@@ -18,7 +18,7 @@ let mySlot = null;
 let roleModalShown = false;
 let selectedTargetKey = null;
 let hideNotes = false;
-let activeReminderPlayerKey = null; // Przechowuje klucz gracza, któremu host dodaje znacznik
+let activeReminderPlayerKey = null;
 
 const AVAILABLE_REMINDERS = [
   { name: "Otrucie", icon: "🧪" },
@@ -342,7 +342,8 @@ function listenHostRoom() {
           else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--yellow); font-weight:bold;";
         }
 
-        let badgesHtml = `<div class="host-badge-container">`;
+        // UKŁAD PÓŁOKRĘGU NAD KÓŁKIEM DLA ŻETONÓW HOSTA
+        let badgesHtml = `<div class="host-badge-arc">`;
         
         // Głos ducha
         if (roomData.state === 'ingame' && p.alive === false) {
@@ -363,7 +364,7 @@ function listenHostRoom() {
           `;
         });
 
-        // Przycisk plusa do dodawania żetonu (jeśli jest mniej niż 3)
+        // Plusik widoczny tylko gdy jest mniej niż 3 żetony
         if (roomData.state === 'ingame' && reminders.length < 3) {
           badgesHtml += `<div class="host-token-add" title="Dodaj znacznik" onclick="event.stopPropagation(); openReminderModal('${playerKey}')">＋</div>`;
         }
@@ -371,10 +372,9 @@ function listenHostRoom() {
         badgesHtml += `</div>`;
 
         containerDiv.innerHTML += `
-          <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia">
-            <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;">
-              ${badgesHtml}
-            </div>
+          <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};">
+            ${badgesHtml}
+            <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia"></div>
             <div class="player-info-below">
               <span class="player-name">#${i} ${p.name}</span>
               ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role" style="color:var(--yellow);">Gotowy</span>`}
