@@ -49,7 +49,7 @@ const ROLE_CATEGORIES = {
     { name: "Błąd konfiguracji", team: "yellow", desc: "Myślisz, że masz normalną rolę, ale Twoja zdolność daje zmyślone lub niedziałające wyniki." }
   ],
   minions: [
-    { name: "Socjotechnik", team: "red", desc: "Co noc wybierasz gracza: jego zdolność tej nocy i następnego dnia nie działa." },
+    { name: "Socjotechnik", team: "red", desc: "Co noc wybierasz gracza: jego zdolność tej nocy i następnego dzień nie działa." },
     { name: "Serwer Zapasowy", team: "red", desc: "Jeśli w grze jest min. 5 osób, a Hacker zginie, natychmiast przejmujesz jego rolę." },
     { name: "Trojan", team: "red", desc: "Myślisz, że jesteś dobrym Mieszczaninem, ale grasz dla APT Team. Hacker wie, kim jesteś." },
     { name: "Botnet", team: "red", desc: "Obecność Botneta dodaje do puli gry dodatkowych Outsiders (+2)." }
@@ -113,10 +113,12 @@ function toggleNotesVisibility() {
   const btn = document.getElementById('toggle-notes-btn');
   if (hideNotes) {
     btn.innerText = "🙈 Notatki: UKRYTE";
-    btn.style.borderColor = "var(--red)";
+    btn.style.borderColor = "var(--accent-red)";
+    btn.style.color = "var(--accent-red)";
   } else {
     btn.innerText = "👁️ Notatki: WIDOCZNE";
-    btn.style.borderColor = "var(--border)";
+    btn.style.borderColor = "var(--border-color)";
+    btn.style.color = "var(--text-main)";
   }
   listenPlayerRoomOnce();
 }
@@ -125,22 +127,22 @@ function renderRolesBook() {
   const container = document.getElementById('roles-book-container');
   if (container.innerHTML.trim() !== "") return;
 
-  let html = `<div class="role-category-title" style="color: var(--blue);">💙 Blue Team (Townsfolk)</div>`;
+  let html = `<div class="role-category-title" style="color: var(--accent-blue);">💙 Blue Team (Townsfolk)</div>`;
   ROLE_CATEGORIES.townsfolk.forEach(r => {
     html += `<div class="role-item"><div class="role-item-name">${r.name}</div><div class="role-item-desc">${r.desc}</div></div>`;
   });
 
-  html += `<div class="role-category-title" style="color: var(--yellow);">💛 Yellow Team (Outsiders)</div>`;
+  html += `<div class="role-category-title" style="color: var(--accent-yellow);">💛 Yellow Team (Outsiders)</div>`;
   ROLE_CATEGORIES.outsiders.forEach(r => {
     html += `<div class="role-item"><div class="role-item-name">${r.name}</div><div class="role-item-desc">${r.desc}</div></div>`;
   });
 
-  html += `<div class="role-category-title" style="color: var(--red);">❤️ APT Team (Minions)</div>`;
+  html += `<div class="role-category-title" style="color: var(--accent-red);">❤️ APT Team (Minions)</div>`;
   ROLE_CATEGORIES.minions.forEach(r => {
     html += `<div class="role-item"><div class="role-item-name">${r.name}</div><div class="role-item-desc">${r.desc}</div></div>`;
   });
 
-  html += `<div class="role-category-title" style="color: var(--red);">🦹 Hacker (Demon)</div>`;
+  html += `<div class="role-category-title" style="color: var(--accent-red);">🦹 Hacker (Demon)</div>`;
   ROLE_CATEGORIES.demons.forEach(r => {
     html += `<div class="role-item"><div class="role-item-name">${r.name}</div><div class="role-item-desc">${r.desc}</div></div>`;
   });
@@ -219,7 +221,7 @@ function restoreSession() {
         
         if (typeof QRCode !== 'undefined') {
           new QRCode(document.getElementById("qrcode"), {
-            text: qrData, width: 140, height: 140
+            text: qrData, width: 130, height: 130
           });
         }
 
@@ -281,7 +283,7 @@ function createRoom() {
 
   if (typeof QRCode !== 'undefined') {
     new QRCode(qrContainer, {
-      text: qrData, width: 140, height: 140
+      text: qrData, width: 130, height: 130
     });
   }
 
@@ -337,15 +339,13 @@ function listenHostRoom() {
         
         let roleBadgeStyle = "";
         if (p.role) {
-          if (p.role.team === 'red') roleBadgeStyle = "color: var(--red); font-weight:bold;";
-          else if (p.role.team === 'blue') roleBadgeStyle = "color: var(--blue); font-weight:bold;";
-          else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--yellow); font-weight:bold;";
+          if (p.role.team === 'red') roleBadgeStyle = "color: var(--accent-red); font-weight:bold;";
+          else if (p.role.team === 'blue') roleBadgeStyle = "color: var(--accent-blue); font-weight:bold;";
+          else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--accent-yellow); font-weight:bold;";
         }
 
-        // UKŁAD PÓŁOKRĘGU NAD KÓŁKIEM DLA ŻETONÓW HOSTA
         let badgesHtml = `<div class="host-badge-arc">`;
         
-        // Głos ducha
         if (roomData.state === 'ingame' && p.alive === false) {
           let hasVote = p.ghostVote !== false;
           if (hasVote) {
@@ -353,7 +353,6 @@ function listenHostRoom() {
           }
         }
 
-        // Tablica żetonów (maksymalnie 3)
         let reminders = p.reminders || [];
         reminders.forEach((rem, idx) => {
           badgesHtml += `
@@ -364,7 +363,6 @@ function listenHostRoom() {
           `;
         });
 
-        // Plusik widoczny tylko gdy jest mniej niż 3 żetony
         if (roomData.state === 'ingame' && reminders.length < 3) {
           badgesHtml += `<div class="host-token-add" title="Dodaj znacznik" onclick="event.stopPropagation(); openReminderModal('${playerKey}')">＋</div>`;
         }
@@ -377,7 +375,7 @@ function listenHostRoom() {
             <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia"></div>
             <div class="player-info-below">
               <span class="player-name">#${i} ${p.name}</span>
-              ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role" style="color:var(--yellow);">Gotowy</span>`}
+              ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role" style="color:var(--accent-yellow);">Gotowy</span>`}
             </div>
           </div>
         `;
@@ -390,8 +388,8 @@ function listenHostRoom() {
 
         assignListDiv.innerHTML += `
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.85em;">
-            <span style="font-weight: bold; width: 110px; overflow: hidden; text-overflow: ellipsis;">#${i} ${p.name}:</span>
-            <select onchange="setManualRole('${playerKey}', this.value)" style="flex: 1; padding: 5px; background: #161b22; border: 1px solid var(--border); color: white; border-radius: 4px;">
+            <span style="font-weight: bold; width: 110px; overflow: hidden; text-overflow: ellipsis; font-size: 0.9em;">#${i} ${p.name}:</span>
+            <select class="cyber-select" onchange="setManualRole('${playerKey}', this.value)" style="flex: 1; padding: 6px; margin: 0; font-size: 0.85em;">
               ${optionsHtml}
             </select>
           </div>
@@ -424,7 +422,7 @@ function openReminderModal(playerKey) {
 
   AVAILABLE_REMINDERS.forEach(rem => {
     listDiv.innerHTML += `
-      <button class="btn" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin:0;" onclick="addReminder('${rem.icon} ${rem.name}')">
+      <button class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin:0;" onclick="addReminder('${rem.icon} ${rem.name}')">
         <span style="font-size: 1.2em;">${rem.icon}</span> <span>${rem.name}</span>
       </button>
     `;
@@ -474,12 +472,12 @@ function setManualRole(playerKey, roleName) {
 function startGame() {
   db.ref(`rooms/${currentRoom}/players`).once('value', snapshot => {
     const players = snapshot.val();
-    if (!players) return alert("Brak graczy w pokoju!");
+    if (!players) return alert("Brak agentów w sieci!");
     const keys = Object.keys(players);
     const playerCount = keys.length;
 
     if (playerCount < 5) {
-      return alert("❌ Minimalna liczba graczy w pokoju do rozpoczęcia gry to 5!");
+      return alert("❌ Wymagane minimum 5 agentów w sieci!");
     }
 
     const proportions = getRoleProportions(playerCount);
@@ -544,19 +542,19 @@ function toggleKill(playerKey, currentStatus) {
 function checkRoomAndShowSlots() {
   const code = document.getElementById('join-code').value.toUpperCase();
   const name = document.getElementById('player-name').value.trim();
-  if (!code || !name) return alert("Wpisz kod i imię!");
+  if (!code || !name) return alert("Podaj kod sieci oraz alias agenta!");
 
   myPlayerName = name;
 
   db.ref('rooms/' + code).once('value').then(snapshot => {
     if (!snapshot.exists()) {
-      alert("❌ Pokój o takim kodzie nie istnieje!");
+      alert("❌ Taka sieć nie istnieje!");
       return;
     }
 
     const roomData = snapshot.val();
     if (roomData.state && roomData.state !== 'lobby') {
-      alert("⚠️ Gra w tym pokoju już się rozpoczęła.");
+      alert("⚠️ Protokół sesji już się rozpoczął.");
       return;
     }
 
@@ -592,7 +590,7 @@ function checkRoomAndShowSlots() {
             <div class="player-node-wrapper selectable" style="left: ${pos.left}; top: ${pos.top};" onclick="claimSlot(${i})">
               <div class="player-circle" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;"></div>
               <div class="player-info-below">
-                <span class="player-name" style="color:var(--green);">#${i} Wolne</span>
+                <span class="player-name" style="color:var(--accent-green);">#${i} Wolne</span>
               </div>
             </div>
           `;
@@ -601,7 +599,7 @@ function checkRoomAndShowSlots() {
     });
   }).catch(error => {
     console.error("Błąd połączenia:", error);
-    alert("Wystąpił błąd podczas dołączania do pokoju.");
+    alert("Błąd autoryzacji sieciowej.");
   });
 }
 
@@ -684,17 +682,17 @@ function renderPlayerTable(snapshot) {
         wrapperClass += " interactive-target";
         clickAttr = `onclick="openSuspectModal('${playerKey}', '${p.name}')"`;
         if (!hideNotes && suspicions[playerKey]) {
-          suspectText = `<span class="player-role" style="color:var(--yellow);" title="Podejrzenie">❓ ${suspicions[playerKey]}</span>`;
+          suspectText = `<span class="player-role" style="color:var(--accent-yellow);" title="Podejrzenie">❓ ${suspicions[playerKey]}</span>`;
         }
       }
 
       let innerInfo = "";
       if (isMe && p.role) {
-        innerInfo = `<span class="player-role" style="font-weight:bold; color:var(--blue);">${p.role.name}</span>`;
+        innerInfo = `<span class="player-role" style="font-weight:bold; color:var(--accent-blue);">${p.role.name}</span>`;
       } else if (suspectText) {
         innerInfo = suspectText;
       } else {
-        innerInfo = `<span class="player-role">${p.alive ? '🟢 Żyje' : '🔴 Odp.'}</span>`;
+        innerInfo = `<span class="player-role">${p.alive ? '🟢 Online' : '🔴 Offline'}</span>`;
       }
 
       containerDiv.innerHTML += `
@@ -720,9 +718,9 @@ function renderPlayerTable(snapshot) {
 
   const statusBox = document.getElementById('player-status-box');
   if (me && me.alive === false) {
-    statusBox.innerHTML = `<h3 style="color:var(--red); margin:0;">⚠️ ZOSTALEŚ ZASZYFROWANY!</h3>`;
+    statusBox.innerHTML = `<h3 style="color:var(--accent-red); margin:0;">⚠️ TERMINAL ZASZYFROWANY!</h3>`;
   } else if (me && me.alive === true && me.role) {
-    statusBox.innerHTML = `<h3 style="color:var(--green); margin:0;">SYSTEM DZIAŁA STABILNIE</h3>`;
+    statusBox.innerHTML = `<h3 style="color:var(--accent-green); margin:0;">SYSTEM STABILNY</h3>`;
   }
 }
 
@@ -737,7 +735,7 @@ function populateSuspectSelect() {
 
 function openSuspectModal(targetKey, targetName) {
   selectedTargetKey = targetKey;
-  document.getElementById('suspect-player-title').innerText = `Gracz: ${targetName}`;
+  document.getElementById('suspect-player-title').innerText = `Agent: ${targetName}`;
   
   const suspicions = getSuspicions();
   document.getElementById('suspect-role-select').value = suspicions[targetKey] || "";
@@ -752,7 +750,7 @@ function closeSuspectModal() {
 
 function saveSuspectRole() {
   if (!selectedTargetKey) return;
-  const roleVal = document.getElementById('suspect-role-select').value;
+  const roleVal = document.getElementById('suspect-role-select'].value;
   
   let suspicions = getSuspicions();
   if (roleVal) {
@@ -768,9 +766,9 @@ function saveSuspectRole() {
 function showRoleModal(role) {
   const modalInfo = document.getElementById('modal-role-info');
   modalInfo.innerHTML = `
-    <h1 style="color: var(--blue); margin: 10px 0;">${role.name}</h1>
+    <h1 style="color: var(--accent-blue); margin: 10px 0; font-size: 1.6em;">${role.name}</h1>
     <span class="badge badge-${role.team}">${role.team.toUpperCase()} TEAM</span>
-    <p style="font-size:1.1em; line-height: 1.4; margin-top:15px; color: #c9d1d9;">${role.desc}</p>
+    <p style="font-size:0.95em; line-height: 1.5; margin-top:20px; color: var(--text-main);">${role.desc}</p>
   `;
   document.getElementById('role-modal').classList.remove('hidden');
 }

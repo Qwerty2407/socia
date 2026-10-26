@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOCia - CyberSec Mafia</title>
+  <title>SOCia // CyberSec Deduction</title>
+  <!-- Google Fonts: Inter & JetBrains Mono dla surowego, hakerskiego klimatu -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -14,29 +18,37 @@
 </head>
 <body>
 
+<!-- Delikatne tło z siatką hakerską -->
+<div class="cyber-grid"></div>
+
 <div class="card">
-  <h1>🛡️ SOCia</h1>
+  <div class="brand-header">
+    <span class="brand-tag">SEC.OPS.V2</span>
+    <h1>SOCia</h1>
+  </div>
 
   <!-- EKRAN STARTOWY -->
   <div id="screen-welcome">
-    <div style="background: #090d16; padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
-      <h3 style="margin-top:0; color:var(--blue);">Panel Hosta</h3>
+    <div class="glass-box">
+      <h3>Panel Hosta</h3>
       <input type="number" id="host-max-players" placeholder="Liczba graczy (5-31)" min="5" max="31" value="6">
-      <button class="btn btn-green" onclick="createRoom()">Stwórz Pokój</button>
+      <button class="btn btn-primary" onclick="createRoom()">Inicjalizuj Pokój</button>
     </div>
     
-    <hr style="border-color: var(--border); margin: 20px 0;">
+    <div class="divider"><span>LUB DOŁĄCZ</span></div>
     
-    <h3 style="margin-top:0; color:var(--green);">Panel Gracza</h3>
-    <input type="text" id="join-code" placeholder="Kod pokoju (np. ABCD)">
-    <input type="text" id="player-name" placeholder="Twoje Imię">
-    <button class="btn" onclick="checkRoomAndShowSlots()">Dołącz do Gry</button>
+    <div class="glass-box">
+      <h3>Panel Agenta</h3>
+      <input type="text" id="join-code" placeholder="KOD POKOJU (np. ABCD)" style="text-transform: uppercase;">
+      <input type="text" id="player-name" placeholder="Twoje Alias / Imię">
+      <button class="btn btn-secondary" onclick="checkRoomAndShowSlots()">Nawiąż Połączenie</button>
+    </div>
   </div>
 
   <!-- EKRAN WYBORU MIEJSCA DLA GRACZA -->
   <div id="screen-select-slot" class="hidden">
-    <h2>Wybierz swoje miejsce</h2>
-    <p>Wybierz wolny slot wokół stołu w pokoju <b id="select-slot-room-code" style="color:var(--blue)"></b>:</p>
+    <h2>Wybierz sektor</h2>
+    <p class="subtitle">Wybierz wolny terminal wokół stołu w sieci: <b id="select-slot-room-code" style="color:var(--accent-blue)"></b></p>
     <div class="table-container">
       <div id="slots-grid" class="table-ring"></div>
     </div>
@@ -44,15 +56,20 @@
 
   <!-- EKRAN HOSTA (KOMPUTER) -->
   <div id="screen-host" class="hidden">
-    <h2>Pokój: <span id="host-room-code" style="color:var(--blue)"></span></h2>
-    <div id="qrcode"></div>
-    <h3>Stan pokoju (<span id="player-count">0</span> / <span id="max-player-count">0</span> graczy):</h3>
-    <p style="font-size: 0.8em; color: var(--yellow);">Minimalna liczba graczy do startu to 5.</p>
+    <h2>Centrum Dowodzenia</h2>
+    <p class="subtitle">Sieć: <span id="host-room-code" style="color:var(--accent-blue); font-family:'JetBrains Mono', monospace; font-weight:bold;"></span></p>
     
-    <!-- Panel blefów dla Hackera (widoczny po starcie gry) -->
-    <div id="host-bluffs-box" class="hidden" style="background: #1f1a0f; border: 1px solid var(--yellow); padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: left;">
-      <h4 style="margin:0 0 5px 0; color: var(--yellow);">🕵️‍♂️ Blefy dla Hackera (Niewykorzystane role dobre):</h4>
-      <div id="host-bluffs-list" style="font-size: 0.85em; color: #c9d1d9;">Brak</div>
+    <div class="qr-wrapper">
+      <div id="qrcode"></div>
+    </div>
+    
+    <p class="status-counter">Aktywne terminale: <span id="player-count">0</span> / <span id="max-player-count">0</span></p>
+    <p class="warning-text">Wymagane minimum do startu: 5 agentów.</p>
+    
+    <!-- Panel blefów dla Hackera -->
+    <div id="host-bluffs-box" class="hidden terminal-box">
+      <h4>🕵️‍♂️ Sygnatury Blefów dla Hackera:</h4>
+      <div id="host-bluffs-list" style="font-family:'JetBrains Mono', monospace; font-size: 0.85em; color: var(--text-muted);">Brak</div>
     </div>
 
     <div class="table-container">
@@ -60,12 +77,12 @@
     </div>
 
     <!-- Panel ręcznego przypisywania ról przez hosta -->
-    <div id="host-role-assign-container" style="margin-top: 20px; text-align: left; background: #090d16; padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
-      <h3 style="margin-top:0; color: var(--blue); text-align: center; font-size: 1em;">Ręczne przypisywanie ról (Opcjonalnie)</h3>
+    <div class="terminal-box" style="margin-top: 25px; text-align: left;">
+      <h4 style="margin-top:0; color: var(--accent-blue); text-align: center;">Ręczny przydział protokołów (Opcjonalnie)</h4>
       <div id="host-role-assign-list"></div>
     </div>
 
-    <button class="btn btn-green" id="start-game-btn" onclick="startGame()" style="margin-top:20px;">Rozdaj Role i Rozpocznij</button>
+    <button class="btn btn-primary" id="start-game-btn" onclick="startGame()" style="margin-top:20px;">Skompiluj i Rozpocznij Gre</button>
   </div>
 
   <!-- EKRAN GRACZA (Z PASKIEM NAWIGACYJNYM) -->
@@ -74,28 +91,29 @@
     <!-- Górny pasek menu -->
     <div class="nav-bar">
       <button class="nav-btn active" onclick="switchTab('table', this)">Stół</button>
-      <button class="nav-btn" onclick="switchTab('roles', this)">Roli</button>
-      <button class="nav-btn" onclick="switchTab('first-night', this)">Pierwsza noc</button>
-      <button class="nav-btn" onclick="switchTab('next-nights', this)">Kolejne noce</button>
+      <button class="nav-btn" onclick="switchTab('roles', this)">Księga</button>
+      <button class="nav-btn" onclick="switchTab('first-night', this)">1. Noc</button>
+      <button class="nav-btn" onclick="switchTab('next-nights', this)">Kolejne</button>
     </div>
 
     <!-- ZAKŁADKA 1: STÓŁ -->
     <div id="tab-table" class="tab-content">
-      <h2>Witaj, <span id="display-player-name"></span>!</h2>
-      <p style="font-size: 0.85em; color: #8b949e; margin-bottom:5px;">Twój slot: #<span id="display-player-slot"></span> (Kliknij na gracza, by zapisać notatkę)</p>
+      <div class="player-header-info">
+        <h2>Agent: <span id="display-player-name" style="color: var(--accent-blue);"></span></h2>
+        <p class="subtitle">Terminal #<span id="display-player-slot"></span> &bull; Kliknij agenta, by zapisać notatkę</p>
+      </div>
       
       <div class="table-container">
-        <!-- Przycisk w środku stołu do ukrywania/pokazywania notatek -->
         <button id="toggle-notes-btn" class="center-toggle-btn" onclick="toggleNotesVisibility()" title="Ukryj/Pokaż notatki">👁️ Notatki: WIDOCZNE</button>
         <div id="player-table-circles" class="table-ring"></div>
       </div>
 
-      <div id="player-status-box" style="margin-top:10px;"></div>
+      <div id="player-status-box" style="margin-top:15px;"></div>
     </div>
 
     <!-- ZAKŁADKA 2: ROLI -->
-    <div id="tab-roles" class="tab-content hidden" style="text-align: left; max-height: 450px; overflow-y: auto; padding-right: 5px;">
-      <h2 style="text-align: center; margin-top:0;">Księga Ról</h2>
+    <div id="tab-roles" class="tab-content hidden" style="text-align: left; max-height: 440px; overflow-y: auto; padding-right: 5px;">
+      <h2 style="text-align: center; margin-top:0;">Księga Protokółów (Ról)</h2>
       <div id="roles-book-container"></div>
     </div>
 
@@ -121,7 +139,7 @@
       <div class="night-step"><span>4</span><strong>Monitoring Awaryjny:</strong> Jeśli zginął w nocy, budzi się, wybiera gracza i poznajesz jego dokładną rolę.</div>
       <div class="night-step"><span>5</span><strong>Digital Forensics:</strong> Dowiaduje się, jaką rolę miał gracz skazany (przegłosowany) poprzedniego dnia.</div>
       <div class="night-step"><span>6</span><strong>Skaner Sieciowy:</strong> Wybiera 2 graczy i sprawdza, czy jest wśród nich Hacker (uwaga na fałszywy alarm / false positive).</div>
-      <div class="night-step"><span>7</span><strong>SOC Analityk:</strong> Dowiaduje się, ilu złych graczy siedzi po jego bezpośrednich żyjących sąsiadach.</div>
+      <div class="night-step"><span>7</span><strong>SOC Analityk:</strong> Dowiaduje się, ilu złych graczy siedzi po bezpośrednich żyjących sąsiadach.</div>
     </div>
 
   </div>
@@ -130,26 +148,27 @@
 <!-- MODAL: WŁASNA ROLA -->
 <div id="role-modal" class="modal-overlay hidden">
   <div class="modal-content">
-    <h2 style="margin-top:0;">Twoja Rola w Grze</h2>
+    <div class="modal-badge-glow"></div>
+    <h2 style="margin-top:0;">Przydzielony Protokół</h2>
     <div id="modal-role-info"></div>
-    <button class="btn btn-green" onclick="closeRoleModal()" style="margin-top:20px;">Rozumiem moją rolę</button>
+    <button class="btn btn-primary" onclick="closeRoleModal()" style="margin-top:25px;">Potwierdzam i Rozumiem</button>
   </div>
 </div>
 
 <!-- MODAL: NOTATKA / PODEJRZENIE ROLI -->
 <div id="suspect-modal" class="modal-overlay hidden">
   <div class="modal-content">
-    <h2 style="margin-top:0;">Podejrzenie roli</h2>
-    <p id="suspect-player-title" style="color: var(--blue); font-weight: bold;"></p>
-    <p style="font-size: 0.85em; color: #8b949e;">Wybierz rolę, którą podejrzewasz u tego gracza (widoczne tylko dla Ciebie):</p>
+    <h2 style="margin-top:0;">Analiza Podejrzenia</h2>
+    <p id="suspect-player-title" style="color: var(--accent-blue); font-weight: 600;"></p>
+    <p style="font-size: 0.85em; color: var(--text-muted);">Zaznacz protokół, który podejrzewasz u tego agenta (wgląd poufny):</p>
     
-    <select id="suspect-role-select" style="width: 100%; padding: 10px; background: #090d16; border: 1px solid var(--border); color: white; border-radius: 6px; margin: 10px 0;">
+    <select id="suspect-role-select" class="cyber-select">
       <option value="">-- Brak / Wyczyść --</option>
     </select>
 
-    <div style="display: flex; gap: 10px; margin-top: 15px;">
-      <button class="btn btn-green" onclick="saveSuspectRole()" style="flex: 1; margin:0;">Zapisz</button>
-      <button class="btn btn-red" onclick="closeSuspectModal()" style="flex: 1; margin:0;">Anuluj</button>
+    <div style="display: flex; gap: 12px; margin-top: 20px;">
+      <button class="btn btn-primary" onclick="saveSuspectRole()" style="flex: 1; margin:0;">Zapisz Notatkę</button>
+      <button class="btn btn-danger" onclick="closeSuspectModal()" style="flex: 1; margin:0;">Anuluj</button>
     </div>
   </div>
 </div>
@@ -157,12 +176,12 @@
 <!-- MODAL: WYBÓR ZNACZNIKA HOSTA -->
 <div id="reminder-modal" class="modal-overlay hidden">
   <div class="modal-content">
-    <h2 style="margin-top:0;">Wybierz efekt / znacznik</h2>
-    <p style="font-size: 0.85em; color: #8b949e;">Wybierz żeton, który chcesz przypisać temu graczowi:</p>
-    <div id="reminder-options-list" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0;">
+    <h2 style="margin-top:0;">Iniekcja Statusu</h2>
+    <p style="font-size: 0.85em; color: var(--text-muted);">Wybierz znacznik systemowy dla tego agenta:</p>
+    <div id="reminder-options-list" style="display: flex; flex-direction: column; gap: 10px; margin: 20px 0;">
       <!-- Generowane dynamicznie -->
     </div>
-    <button class="btn btn-red" onclick="closeReminderModal()">Zamknij</button>
+    <button class="btn btn-danger" onclick="closeReminderModal()">Zamknij</button>
   </div>
 </div>
 
