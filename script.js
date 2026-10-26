@@ -750,7 +750,7 @@ function closeSuspectModal() {
 
 function saveSuspectRole() {
   if (!selectedTargetKey) return;
-  const roleVal = document.getElementById('suspect-role-select'].value;
+  const roleVal = document.getElementById('suspect-role-select').value;
   
   let suspicions = getSuspicions();
   if (roleVal) {
