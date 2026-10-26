@@ -17,7 +17,7 @@ let myPlayerName = "";
 let mySlot = null;
 let roleModalShown = false;
 let selectedTargetKey = null;
-let hideNotes = false; // Flaga określająca czy notatki są ukryte
+let hideNotes = false;
 
 const ROLE_CATEGORIES = {
   townsfolk: [
@@ -99,7 +99,6 @@ function switchTab(tabName, btnElement) {
   btnElement.classList.add('active');
 }
 
-// Funkcja przełączająca widoczność notatek
 function toggleNotesVisibility() {
   hideNotes = !hideNotes;
   const btn = document.getElementById('toggle-notes-btn');
@@ -110,7 +109,6 @@ function toggleNotesVisibility() {
     btn.innerText = "👁️ Notatki: WIDOCZNE";
     btn.style.borderColor = "var(--border)";
   }
-  // Odśwież widok stołu gracza z nowym stanem
   listenPlayerRoomOnce();
 }
 
@@ -143,19 +141,19 @@ function renderRolesBook() {
 
 function getPerimeterPosition(index, total) {
   const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
-  const rx = 41;
-  const ry = 39;
+  const rx = 39;
+  const ry = 36;
   const left = 50 + rx * Math.cos(angle);
   const top = 50 + ry * Math.sin(angle);
   return { left: `${left}%`, top: `${top}%` };
 }
 
 function getCircleSizeConfig(total) {
-  if (total > 22) return { size: 36, fontSize: '0.38em' };
-  if (total > 16) return { size: 44, fontSize: '0.45em' };
-  if (total > 12) return { size: 50, fontSize: '0.52em' };
-  if (total > 8) return { size: 60, fontSize: '0.6em' };
-  return { size: 70, fontSize: '0.68em' };
+  if (total > 22) return { size: 36 };
+  if (total > 16) return { size: 42 };
+  if (total > 12) return { size: 48 };
+  if (total > 8) return { size: 54 };
+  return { size: 60 };
 }
 
 function getSuspicions() {
@@ -207,7 +205,6 @@ function restoreSession() {
         showScreen('screen-host');
 
         document.getElementById("qrcode").innerHTML = "";
-        
         const currentDomain = window.location.origin + window.location.pathname;
         const qrData = `${currentDomain}?room=${currentRoom}`;
         
@@ -226,8 +223,8 @@ function restoreSession() {
         }
 
         myPlayerKey = session.playerKey;
-        myPlayerName = session.playerName || players[myPlayerKey].name;
-        mySlot = players[myPlayerKey].slot;
+        myPlayerName = session.playerName || players[session.playerKey].name;
+        mySlot = players[session.playerKey].slot;
 
         document.getElementById('display-player-name').innerText = myPlayerName;
         document.getElementById('display-player-slot').innerText = mySlot;
@@ -294,6 +291,17 @@ function listenHostRoom() {
     const config = getCircleSizeConfig(max);
 
     document.getElementById('player-count').innerText = playerKeys.length;
+
+    // Obsługa wyświetlania blefów dla Hackera
+    const bluffsBox = document.getElementById('host-bluffs-box');
+    const bluffsList = document.getElementById('host-bluffs-list');
+    if (roomData.state === 'ingame' && roomData.bluffs) {
+      bluffsBox.classList.remove('hidden');
+      bluffsList.innerText = roomData.bluffs.join(", ");
+    } else {
+      bluffsBox.classList.add('hidden');
+    }
+
     const containerDiv = document.getElementById('host-player-circles');
     containerDiv.innerHTML = "";
 
@@ -326,13 +334,30 @@ function listenHostRoom() {
           else if (p.role.team === 'yellow') roleBadgeStyle = "color: var(--yellow); font-weight:bold;";
         }
 
+        // Znaczniki hosta (żeton ducha oraz statusy)
+        let badgesHtml = `<div class="host-badge-container">`;
+        if (roomData.state === 'ingame' && p.alive === false) {
+          let hasVote = p.ghostVote !== false; // domyślnie ma głos
+          if (hasVote) {
+            badgesHtml += `<div class="host-token" title="Głos ducha (kliknij, aby zużyć)" onclick="event.stopPropagation(); toggleGhostVote('${playerKey}', true)">🗳️</div>`;
+          }
+        }
+        if (roomData.state === 'ingame' && p.reminder) {
+          badgesHtml += `<div class="host-token" title="Status: ${p.reminder} (kliknij, aby zmienić)" onclick="event.stopPropagation(); cycleReminder('${playerKey}', '${p.reminder}')">${p.reminder}</div>`;
+        } else if (roomData.state === 'ingame') {
+          badgesHtml += `<div class="host-token" title="Dodaj znacznik" onclick="event.stopPropagation(); cycleReminder('${playerKey}', null)" style="opacity: 0.4;">➕</div>`;
+        }
+        badgesHtml += `</div>`;
+
         containerDiv.innerHTML += `
-          <div class="player-circle ${statusClass}" 
-               style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize}; cursor: pointer;" 
-               title="Kliknij, aby zmienić stan" 
-               onclick="toggleKill('${playerKey}', ${p.alive})">
-            <span class="player-name">#${i} ${p.name}</span>
-            ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role">Gotowy</span>`}
+          <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};" onclick="toggleKill('${playerKey}', ${p.alive})" title="Kliknij, aby zmienić stan życia">
+            <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;">
+              ${badgesHtml}
+            </div>
+            <div class="player-info-below">
+              <span class="player-name">#${i} ${p.name}</span>
+              ${p.role ? `<span class="player-role" style="${roleBadgeStyle}">${p.role.name}</span>` : `<span class="player-role" style="color:var(--yellow);">Gotowy</span>`}
+            </div>
           </div>
         `;
 
@@ -353,12 +378,31 @@ function listenHostRoom() {
 
       } else {
         containerDiv.innerHTML += `
-          <div class="player-circle" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};">
-            <span class="empty-slot">#${i}</span>
+          <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};">
+            <div class="player-circle" style="width: ${config.size}px; height: ${config.size}px;"></div>
+            <div class="player-info-below">
+              <span class="empty-slot">#${i} Wolne</span>
+            </div>
           </div>
         `;
       }
     }
+  });
+}
+
+function toggleGhostVote(playerKey, currentHasVote) {
+  db.ref(`rooms/${currentRoom}/players/${playerKey}`).update({
+    ghostVote: false
+  });
+}
+
+function cycleReminder(playerKey, currentReminder) {
+  const reminders = [null, "🧪", "🛡️", "🚫"];
+  let currentIndex = reminders.indexOf(currentReminder);
+  let nextReminder = reminders[(currentIndex + 1) % reminders.length];
+  
+  db.ref(`rooms/${currentRoom}/players/${playerKey}`).update({
+    reminder: nextReminder
   });
 }
 
@@ -405,18 +449,33 @@ function startGame() {
     let updates = {};
     let autoIndex = 0;
 
+    // Zbieramy przypisane role, żeby wyliczyć niewykorzystane dobre role na blef dla Hackera
+    let usedRoleNames = Object.values(assignedRolesMap).map(r => r.name);
+
     keys.forEach(key => {
       if (assignedRolesMap[key]) {
         updates[`${key}/role`] = assignedRolesMap[key];
       } else {
-        updates[`${key}/role`] = autoRoles[autoIndex % autoRoles.length];
+        let assigned = autoRoles[autoIndex % autoRoles.length];
+        updates[`${key}/role`] = assigned;
+        usedRoleNames.push(assigned.name);
         autoIndex++;
       }
       updates[`${key}/alive`] = true;
+      updates[`${key}/ghostVote`] = true;
+      updates[`${key}/reminder`] = null;
     });
 
+    // Generowanie 3 losowych dobrych ról (Townsfolk/Outsiders) spoza tych w grze (dla Hackera)
+    let allGoodRoles = [...ROLE_CATEGORIES.townsfolk, ...ROLE_CATEGORIES.outsiders];
+    let availableForBluff = allGoodRoles.filter(r => !usedRoleNames.includes(r.name));
+    let randomBluffs = getRandomSample(availableForBluff, 3).map(r => r.name);
+
     db.ref(`rooms/${currentRoom}/players`).update(updates);
-    db.ref(`rooms/${currentRoom}`).update({ state: 'ingame' });
+    db.ref(`rooms/${currentRoom}`).update({ 
+      state: 'ingame',
+      bluffs: randomBluffs
+    });
   });
 }
 
@@ -465,14 +524,20 @@ function checkRoomAndShowSlots() {
 
         if (takenPlayerKey) {
           containerDiv.innerHTML += `
-            <div class="player-circle taken" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};">
-              <span class="player-name">#${i} Zajęte</span>
+            <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};">
+              <div class="player-circle taken" style="width: ${config.size}px; height: ${config.size}px;"></div>
+              <div class="player-info-below">
+                <span class="player-name">#${i} Zajęte</span>
+              </div>
             </div>
           `;
         } else {
           containerDiv.innerHTML += `
-            <div class="player-circle selectable" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};" onclick="claimSlot(${i})">
-              <span class="player-name">#${i} Wolne</span>
+            <div class="player-node-wrapper selectable" style="left: ${pos.left}; top: ${pos.top};" onclick="claimSlot(${i})">
+              <div class="player-circle" style="width: ${config.size}px; height: ${config.size}px; cursor: pointer;"></div>
+              <div class="player-info-below">
+                <span class="player-name" style="color:var(--green);">#${i} Wolne</span>
+              </div>
             </div>
           `;
         }
@@ -495,7 +560,8 @@ function claimSlot(slotNumber) {
   newPlayerRef.set({
     name: myPlayerName,
     slot: slotNumber,
-    alive: true
+    alive: true,
+    ghostVote: true
   });
 
   saveSession(false);
@@ -547,6 +613,7 @@ function renderPlayerTable(snapshot) {
       const p = players[playerKey];
       const isMe = (playerKey === myPlayerKey);
       let statusClass = isMe ? "joined is-me" : "joined";
+      let wrapperClass = isMe ? "player-node-wrapper is-me" : "player-node-wrapper";
 
       if (roomData.state === 'ingame') {
         statusClass += p.alive ? " alive" : " dead";
@@ -558,33 +625,38 @@ function renderPlayerTable(snapshot) {
       let clickAttr = "";
       let suspectText = "";
       if (!isMe && roomData.state === 'ingame') {
-        statusClass += " interactive-target";
+        wrapperClass += " interactive-target";
         clickAttr = `onclick="openSuspectModal('${playerKey}', '${p.name}')"`;
-        // Wyświetl notatkę tylko wtedy, gdy notatki nie są ukryte przez gracza
         if (!hideNotes && suspicions[playerKey]) {
           suspectText = `<span class="player-role" style="color:var(--yellow);" title="Podejrzenie">❓ ${suspicions[playerKey]}</span>`;
         }
       }
 
-      let innerContent = "";
+      let innerInfo = "";
       if (isMe && p.role) {
-        innerContent = `<span class="player-role" style="font-weight:bold;">${p.role.name}</span>`;
+        innerInfo = `<span class="player-role" style="font-weight:bold; color:var(--blue);">${p.role.name}</span>`;
       } else if (suspectText) {
-        innerContent = suspectText;
+        innerInfo = suspectText;
       } else {
-        innerContent = `<span class="player-role">${p.alive ? '🟢' : '🔴'}</span>`;
+        innerInfo = `<span class="player-role">${p.alive ? '🟢 Żyje' : '🔴 Odp.'}</span>`;
       }
 
       containerDiv.innerHTML += `
-        <div class="player-circle ${statusClass}" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};" ${clickAttr}>
-          <span class="player-name">#${i} ${p.name}</span>
-          ${innerContent}
+        <div class="${wrapperClass}" style="left: ${pos.left}; top: ${pos.top};" ${clickAttr}>
+          <div class="player-circle ${statusClass}" style="width: ${config.size}px; height: ${config.size}px;"></div>
+          <div class="player-info-below">
+            <span class="player-name">#${i} ${p.name}</span>
+            ${innerInfo}
+          </div>
         </div>
       `;
     } else {
       containerDiv.innerHTML += `
-        <div class="player-circle" style="left: ${pos.left}; top: ${pos.top}; width: ${config.size}px; height: ${config.size}px; font-size: ${config.fontSize};">
-          <span class="empty-slot">#${i}</span>
+        <div class="player-node-wrapper" style="left: ${pos.left}; top: ${pos.top};">
+          <div class="player-circle" style="width: ${config.size}px; height: ${config.size}px;"></div>
+          <div class="player-info-below">
+            <span class="empty-slot">#${i} Wolne</span>
+          </div>
         </div>
       `;
     }
@@ -626,9 +698,7 @@ function saveSuspectRole() {
   if (!selectedTargetKey) return;
   const roleVal = document.getElementById('suspect-role-select').value;
   
-  // Pobieramy aktualne notatki za pomocą dedykowanej funkcji
   let suspicions = getSuspicions();
-  
   if (roleVal) {
     suspicions[selectedTargetKey] = roleVal;
   } else {

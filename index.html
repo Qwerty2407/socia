@@ -49,6 +49,12 @@
     <h3>Stan pokoju (<span id="player-count">0</span> / <span id="max-player-count">0</span> graczy):</h3>
     <p style="font-size: 0.8em; color: var(--yellow);">Minimalna liczba graczy do startu to 5.</p>
     
+    <!-- Panel blefów dla Hackera (widoczny po starcie gry) -->
+    <div id="host-bluffs-box" class="hidden" style="background: #1f1a0f; border: 1px solid var(--yellow); padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: left;">
+      <h4 style="margin:0 0 5px 0; color: var(--yellow);">🕵️‍♂️ Blefy dla Hackera (Niewykorzystane role dobre):</h4>
+      <div id="host-bluffs-list" style="font-size: 0.85em; color: #c9d1d9;">Brak</div>
+    </div>
+
     <div class="table-container">
       <div id="host-player-circles" class="table-ring"></div>
     </div>

@@ -180,7 +180,7 @@ input {
   position: relative;
   width: 100%;
   max-width: 580px;
-  height: 380px;
+  height: 420px;
   margin: 15px auto;
   border: 2px dashed rgba(48, 54, 61, 0.5);
   border-radius: 40px;
@@ -196,42 +196,78 @@ input {
   height: 100%;
 }
 
+/* Węzeł gracza */
+.player-node-wrapper {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease;
+  z-index: 5;
+}
+
 .player-circle {
   border-radius: 50%;
   background: var(--gray);
   border: 2px dashed var(--border);
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Znaczniki hosta i głosy ducha nad kółkiem */
+.host-badge-container {
+  position: absolute;
+  top: -12px;
+  right: -12px;
   display: flex;
-  flex-direction: column;
+  gap: 2px;
+  z-index: 10;
+}
+
+.host-token {
+  background: #161b22;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
-  box-sizing: border-box;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  transition: all 0.3s ease;
-}
-
-.player-circle.selectable {
-  border: 2px solid var(--green);
+  font-size: 0.65em;
   cursor: pointer;
-  background: #091a10;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.player-circle.selectable:hover {
+.host-token:hover {
+  transform: scale(1.2);
+  border-color: var(--blue);
+}
+
+.player-node-wrapper.selectable {
+  cursor: pointer;
+}
+.player-node-wrapper.selectable:hover {
   transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 0 12px var(--green);
-  z-index: 10;
+  z-index: 15;
+}
+.player-node-wrapper.selectable .player-circle {
+  border: 2px solid var(--green);
+  background: #091a10;
+  box-shadow: 0 0 10px var(--green);
 }
 
-.player-circle.interactive-target {
+.player-node-wrapper.interactive-target {
   cursor: pointer;
 }
-
-.player-circle.interactive-target:hover {
+.player-node-wrapper.interactive-target:hover {
   transform: translate(-50%, -50%) scale(1.1);
+  z-index: 15;
+}
+.player-node-wrapper.interactive-target:hover .player-circle {
   border-color: var(--yellow);
   box-shadow: 0 0 10px var(--yellow);
-  z-index: 10;
 }
 
 .player-circle.taken {
@@ -246,7 +282,7 @@ input {
   border-style: solid;
 }
 
-.player-circle.is-me {
+.player-node-wrapper.is-me .player-circle {
   border-width: 3px !important;
   box-shadow: 0 0 15px var(--blue);
 }
@@ -264,29 +300,39 @@ input {
 .player-circle.team-red { border-color: var(--red) !important; box-shadow: 0 0 10px rgba(218, 54, 51, 0.5); }
 .player-circle.team-yellow { border-color: var(--yellow) !important; box-shadow: 0 0 10px rgba(210, 153, 34, 0.5); }
 
+/* Informacje pod kółkiem */
+.player-info-below {
+  margin-top: 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90px;
+}
+
 .player-name {
   font-weight: bold;
+  font-size: 0.75em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 90%;
-  text-align: center;
+  width: 100%;
 }
 
 .player-role {
+  font-size: 0.68em;
   margin-top: 1px;
-  text-align: center;
-  line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 90%;
+  width: 100%;
 }
 
 .empty-slot {
   color: #484f58;
   font-style: italic;
-  font-size: 0.75em;
+  font-size: 0.7em;
+  margin-top: 4px;
 }
 
 /* Modalki */
