@@ -356,8 +356,8 @@ function listenHostRoom() {
         let reminders = p.reminders || [];
         reminders.forEach((rem, idx) => {
           badgesHtml += `
-            <div class="host-token" title="${rem}">
-              ${rem}
+            <div class="host-token" title="${rem.name}">
+              ${rem.icon}
               <span class="host-token-remove" onclick="event.stopPropagation(); removeReminder('${playerKey}', ${idx})">×</span>
             </div>
           `;
@@ -422,7 +422,7 @@ function openReminderModal(playerKey) {
 
   AVAILABLE_REMINDERS.forEach(rem => {
     listDiv.innerHTML += `
-      <button class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin:0;" onclick="addReminder('${rem.icon} ${rem.name}')">
+      <button class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin:0;" onclick="addReminder('${JSON.stringify(rem).replace(/"/g, '&quot;')}')">
         <span style="font-size: 1.2em;">${rem.icon}</span> <span>${rem.name}</span>
       </button>
     `;
@@ -436,14 +436,15 @@ function closeReminderModal() {
   activeReminderPlayerKey = null;
 }
 
-function addReminder(reminderText) {
+function addReminder(remJson) {
   if (!activeReminderPlayerKey) return;
+  const remObj = JSON.parse(remJson);
   
   db.ref(`rooms/${currentRoom}/players/${activeReminderPlayerKey}`).once('value').then(snapshot => {
     let pData = snapshot.val();
     let reminders = pData.reminders || [];
     if (reminders.length < 3) {
-      reminders.push(reminderText);
+      reminders.push(remObj);
       db.ref(`rooms/${currentRoom}/players/${activeReminderPlayerKey}`).update({
         reminders: reminders
       });
@@ -761,6 +762,9 @@ function saveSuspectRole() {
   
   saveSuspicions(suspicions);
   closeSuspectModal();
+  
+  // Natychmiastowe odświeżenie stołu gracza, aby notatka pokazała się bez odświeżania
+  listenPlayerRoomOnce();
 }
 
 function showRoleModal(role) {
